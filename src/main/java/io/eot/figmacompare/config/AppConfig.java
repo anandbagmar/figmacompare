@@ -7,13 +7,32 @@ import java.util.Properties;
 
 public class AppConfig {
 
-    public static final String CONFIG_DIR = "figma-visual-testing";
+    /**
+     * Where config.properties (and its templates/ subdirectory) live, relative to the
+     * consuming project's working directory. Overridable via the figmacompare.configDir
+     * system property or FIGMACOMPARE_CONFIG_DIR environment variable (checked in that
+     * order) for consumers with a different repo layout - this can't itself be set via
+     * config.properties, since it determines where that file is.
+     */
+    public static final String CONFIG_DIR = resolveConfigDir();
     public static final String TEMPLATES_DIR = CONFIG_DIR + File.separator + "templates";
     public static final String CONFIG_FILE_NAME = "config.properties";
 
     private static final Properties PROPERTIES = load();
 
     private AppConfig() {
+    }
+
+    private static String resolveConfigDir() {
+        String fromSystemProperty = System.getProperty("figmacompare.configDir");
+        if (null != fromSystemProperty && !fromSystemProperty.isBlank()) {
+            return fromSystemProperty;
+        }
+        String fromEnv = System.getenv("FIGMACOMPARE_CONFIG_DIR");
+        if (null != fromEnv && !fromEnv.isBlank()) {
+            return fromEnv;
+        }
+        return "figma-visual-testing";
     }
 
     private static Properties load() {

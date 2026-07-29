@@ -1,5 +1,7 @@
 package io.eot.figmacompare.eyes;
 
+import java.util.Arrays;
+
 import com.applitools.eyes.BatchInfo;
 import com.applitools.eyes.MatchLevel;
 import com.applitools.eyes.selenium.Configuration;
@@ -17,19 +19,36 @@ import io.eot.figmacompare.config.AppConfig;
  */
 public class EyesConfigSupport {
 
+    private static final String DEFAULT_SERVER_URL = "https://eyes.applitools.com";
+    private static final MatchLevel DEFAULT_MATCH_LEVEL = MatchLevel.STRICT;
+
     private EyesConfigSupport() {
     }
 
     public static Configuration baseConfiguration(BatchInfo batch, String baselineEnvName) {
         Configuration configuration = new Configuration();
         configuration.setApiKey(AppConfig.requireApplitoolsApiKey());
+        configuration.setServerUrl(AppConfig.get("APPLITOOLS_SERVER_URL", DEFAULT_SERVER_URL));
         configuration.setBatch(batch);
         configuration.setBaselineEnvName(baselineEnvName);
-        configuration.setMatchLevel(MatchLevel.STRICT);
+        configuration.setMatchLevel(resolveMatchLevel());
         configuration.setSaveNewTests(false);
         configuration.setIgnoreDisplacements(true);
         configuration.setStitchMode(StitchMode.CSS);
         configuration.addProperty("username", System.getProperty("user.name"));
         return configuration;
+    }
+
+    private static MatchLevel resolveMatchLevel() {
+        String value = AppConfig.get("APPLITOOLS_MATCH_LEVEL");
+        if (null == value) {
+            return DEFAULT_MATCH_LEVEL;
+        }
+        try {
+            return MatchLevel.valueOf(value.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalStateException("Invalid APPLITOOLS_MATCH_LEVEL: '" + value + "' - must be one of "
+                    + Arrays.toString(MatchLevel.values()), ex);
+        }
     }
 }

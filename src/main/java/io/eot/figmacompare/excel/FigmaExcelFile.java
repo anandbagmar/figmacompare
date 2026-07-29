@@ -15,7 +15,7 @@ import io.eot.figmacompare.config.AppConfig;
  */
 public class FigmaExcelFile {
 
-    private static final String DEFAULT_PATH = "figma-visual-testing/figma_visual_tests.xlsx";
+    private static final String DEFAULT_PATH = AppConfig.CONFIG_DIR + "/figma_visual_tests.xlsx";
     private static final Set<String> SKIP_VALUES = Set.of("true", "t", "yes", "y", "skip");
 
     private FigmaExcelFile() {

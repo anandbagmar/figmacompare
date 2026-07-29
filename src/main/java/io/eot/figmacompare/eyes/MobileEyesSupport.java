@@ -7,6 +7,7 @@ import com.applitools.eyes.config.MobileOptions;
 import com.applitools.eyes.selenium.Configuration;
 
 import io.appium.java_client.AppiumDriver;
+import io.eot.figmacompare.config.AppConfig;
 
 /**
  * The Applitools Eyes settings shared by every native-mobile compareWithFigma path -
@@ -30,15 +31,14 @@ public class MobileEyesSupport {
 
         Configuration configuration = EyesConfigSupport.baseConfiguration(batch, baselineName);
         configuration.setSaveNewTests(saveNewTests);
-        configuration.setBranchName("main");
+        configuration.setBranchName(AppConfig.get("APPLITOOLS_BRANCH_NAME", "main"));
         configuration.setCaptureStatusBar(true);
         configuration.setDisableBrowserFetching(true);
         configuration.setEnablePatterns(true);
-        configuration.setEnvironmentName("prod");
+        configuration.setEnvironmentName(AppConfig.get("APPLITOOLS_ENVIRONMENT_NAME", "prod"));
         configuration.setHideCaret(true);
         configuration.setIgnoreCaret(true);
         configuration.setIsDisabled(!isEyesEnabled);
-        configuration.setServerUrl("https://eyes.applitools.com");
         configuration.setMobileOptions(MobileOptions.keepNavigationBar(false));
         eyes.setConfiguration(configuration);
 

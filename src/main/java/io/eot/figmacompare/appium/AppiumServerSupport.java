@@ -5,8 +5,11 @@ import java.io.File;
 import io.appium.java_client.service.local.AppiumDriverLocalService;
 import io.appium.java_client.service.local.AppiumServiceBuilder;
 import io.appium.java_client.service.local.flags.GeneralServerFlag;
+import io.eot.figmacompare.config.AppConfig;
 
 public class AppiumServerSupport {
+
+    private static final String DEFAULT_APPIUM_JS_PATH = "./node_modules/appium/build/lib/main.js";
 
     private AppiumServerSupport() {
     }
@@ -22,7 +25,7 @@ public class AppiumServerSupport {
         // Use any port, in case the default 4723 is already taken (maybe by another
         // Appium server)
         serviceBuilder.usingAnyFreePort();
-        serviceBuilder.withAppiumJS(new File("./node_modules/appium/build/lib/main.js"));
+        serviceBuilder.withAppiumJS(new File(AppConfig.get("APPIUM_JS_PATH", DEFAULT_APPIUM_JS_PATH)));
         serviceBuilder.withLogFile(new File(logFileDir));
         serviceBuilder.withArgument(GeneralServerFlag.ALLOW_INSECURE, "adb_shell");
         serviceBuilder.withArgument(GeneralServerFlag.RELAXED_SECURITY);
