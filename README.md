@@ -25,7 +25,11 @@ shims around this library's plain-Java runners).
   orchestration for the `compareWithFigma` pipeline, one per platform. No TestNG (or any
   other test framework) dependency; a consuming repo wraps each in a thin TestNG (or
   JUnit, etc.) shim.
-- `UploadFromFigma` / `Baseline` — the `uploadFromFigma` baseline-upload pipeline
+- `UploadFromFigma` / `Baseline` — the `uploadFromFigma` baseline-upload pipeline.
+  `UploadFromFigma.main` takes `[figmaExcelPath] [forceRefresh] [platform]` (all
+  optional, also settable via `-DfigmaExcel`/`-DforceRefresh`/`-Dplatform`) - `platform`
+  (`Web`/`Android`/`iOS`) scopes the run to just that platform's rows instead of the
+  whole file; an invalid value hard-fails immediately.
 
 ## Build and publish locally
 

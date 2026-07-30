@@ -32,19 +32,29 @@ import io.eot.figmacompare.figma.FigmaClient;
  * one close() - matching how the Applitools Figma plugin itself uploads a multi-frame
  * scenario. A standalone row (blank Scenario Name) is just a scenario of one step.
  *
- * Usage: UploadFromFigma [figmaExcelPath] [forceRefresh: true|false]
+ * Usage: UploadFromFigma [figmaExcelPath] [forceRefresh: true|false] [platform: Web|Android|iOS]
  * figmaExcelPath, if omitted, falls back to -DfigmaExcel, then FIGMA_EXCEL_FILE in
- * config.properties/env, then a built-in default (see FigmaExcelFile).
+ * config.properties/env, then a built-in default (see FigmaExcelFile). platform, if
+ * omitted, falls back to -Dplatform; leave unset to process every platform's rows (the
+ * default, matching prior behavior) - set it to upload baselines for just one platform's
+ * rows, e.g. while iterating on a single platform's tests without re-touching the others.
  */
 public class UploadFromFigma {
 
     private static final String DEFAULT_SCALE = "1";
     private static final String DEFAULT_FORMAT = "png";
+    private static final List<String> VALID_PLATFORMS = List.of("Web", "Android", "iOS");
 
     public static void main(String[] args) {
         String pathOverride = args.length > 0 ? args[0] : System.getProperty("figmaExcel");
         String figmaExcelPath = FigmaExcelFile.resolvePath(pathOverride);
         boolean forceRefresh = args.length > 1 ? Boolean.parseBoolean(args[1]) : Boolean.getBoolean("forceRefresh");
+        String platform = args.length > 2 ? args[2] : System.getProperty("platform");
+        if (null != platform && !platform.isBlank()
+                && VALID_PLATFORMS.stream().noneMatch(p -> p.equalsIgnoreCase(platform))) {
+            throw new IllegalStateException(
+                    "Invalid platform: '" + platform + "' - must be one of " + VALID_PLATFORMS);
+        }
 
         String figmaToken = AppConfig.get("FIGMA_TOKEN");
         String applitoolsApiKey = AppConfig.get("APPLITOOLS_API_KEY");
@@ -71,10 +81,13 @@ public class UploadFromFigma {
         FigmaValidation.throwIfAny(FigmaValidation.validate(allRows));
 
         FigmaClient figmaClient = new FigmaClient(figmaToken);
-        List<FigmaRow> toProcess = FigmaExcelFile.excludeSkipped(allRows);
+        List<FigmaRow> toProcess = (null != platform && !platform.isBlank())
+                ? FigmaExcelFile.filterByPlatform(allRows, platform)
+                : FigmaExcelFile.excludeSkipped(allRows);
         List<List<FigmaRow>> groups = FigmaExcelFile.groupContiguous(toProcess);
-        System.out.println("Loaded " + allRows.size() + " row(s) from " + figmaExcelPath + " ("
-                + (allRows.size() - toProcess.size()) + " skipped, " + groups.size() + " test(s) to upload)");
+        System.out.println("Loaded " + allRows.size() + " row(s) from " + figmaExcelPath
+                + (null != platform && !platform.isBlank() ? " (platform=" + platform + ")" : "") + " ("
+                + (allRows.size() - toProcess.size()) + " skipped/excluded, " + groups.size() + " test(s) to upload)");
 
         // One EyesRunner (and its background "universal core" process), and one BatchInfo,
         // shared across the whole run - so every upload groups into a single batch instead
