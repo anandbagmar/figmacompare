@@ -13,7 +13,13 @@ shims around this library's plain-Java runners).
 
 - `io.eot.figmacompare.excel` — the shared Excel file model/validation (`FigmaRow`,
   `FigmaExcelFile`, `FigmaValidation`, `ExcelHelper`)
-- `io.eot.figmacompare.figma` — the Figma REST client (`FigmaClient`, URL parsing)
+- `io.eot.figmacompare.figma` — the Figma REST client (`FigmaClient`, URL parsing).
+  Every request is retried with exponential backoff on `429`/`5xx`, and paced at least
+  1 second apart from the previous request regardless of outcome, to reduce how often
+  a run trips Figma's own per-token rate limit in the first place. Neither eliminates
+  it entirely - a token already deep into an extended rate-limit window (e.g. from
+  several back-to-back runs) will still see `429`s; that's Figma's own throttling, not
+  a bug here.
 - `io.eot.figmacompare.eyes` — Applitools Eyes configuration and batch/result helpers
   shared across web/Android/iOS (`EyesConfigSupport`, `MobileEyesSupport`,
   `BatchSupport`, `ComparisonResultRecorder`)

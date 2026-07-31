@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
 
 import com.google.gson.Gson;
@@ -24,12 +25,20 @@ public class FigmaClient {
     private static final Duration INITIAL_RETRY_DELAY = Duration.ofSeconds(2);
     private static final Duration INITIAL_RATE_LIMIT_DELAY = Duration.ofSeconds(15);
     private static final Duration MAX_RETRY_DELAY = Duration.ofSeconds(60);
+    // Every uploadFromFigma row issues 2-3 back-to-back requests (node name, image URL,
+    // image download) with no pacing at all - fine in isolation, but a run with several
+    // rows can burst well past Figma's rate limit before a single 429 ever comes back to
+    // trigger the retry/backoff above. Spacing every request out by at least this much
+    // trades a little wall-clock time for a much lower chance of tripping the limit in
+    // the first place. Not a substitute for the retry logic below - both are needed.
+    private static final Duration MIN_REQUEST_INTERVAL = Duration.ofSeconds(1);
     private final OkHttpClient httpClient = new OkHttpClient.Builder()
             .connectTimeout(Duration.ofSeconds(30))
             .readTimeout(Duration.ofSeconds(120))
             .writeTimeout(Duration.ofSeconds(30))
             .build();
     private final String figmaToken;
+    private Instant lastRequestAt;
 
     public FigmaClient(String figmaToken) {
         if (null == figmaToken || figmaToken.isBlank()) {
@@ -126,6 +135,7 @@ public class FigmaClient {
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             Response response = null;
             try {
+                pace();
                 response = httpClient.newCall(request).execute();
                 if (response.isSuccessful() || !isRetryableStatus(response.code()) || attempt == MAX_ATTEMPTS) {
                     return response;
@@ -151,6 +161,17 @@ public class FigmaClient {
             }
         }
         throw lastFailure;
+    }
+
+    /** Blocks, if needed, so consecutive requests are never closer together than MIN_REQUEST_INTERVAL. */
+    private synchronized void pace() {
+        if (null != lastRequestAt) {
+            Duration sinceLast = Duration.between(lastRequestAt, Instant.now());
+            if (sinceLast.compareTo(MIN_REQUEST_INTERVAL) < 0) {
+                sleep(MIN_REQUEST_INTERVAL.minus(sinceLast));
+            }
+        }
+        lastRequestAt = Instant.now();
     }
 
     private static boolean isRetryableStatus(int code) {
