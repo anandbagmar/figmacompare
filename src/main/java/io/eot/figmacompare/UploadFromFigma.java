@@ -46,7 +46,8 @@ public class UploadFromFigma {
     private static final List<String> VALID_PLATFORMS = List.of("Web", "Android", "iOS");
 
     public static void main(String[] args) {
-        System.out.println("Using io.eot:figmacompare version: " + AppConfig.libraryVersion());
+        Log.header("uploadFromFigma");
+        Log.field("figmacompare version", AppConfig.libraryVersion());
         String pathOverride = args.length > 0 ? args[0] : System.getProperty("figmaExcel");
         String figmaExcelPath = FigmaExcelFile.resolvePath(pathOverride);
         boolean forceRefresh = args.length > 1 ? Boolean.parseBoolean(args[1]) : Boolean.getBoolean("forceRefresh");
@@ -86,9 +87,11 @@ public class UploadFromFigma {
                 ? FigmaExcelFile.filterByPlatform(allRows, platform)
                 : FigmaExcelFile.excludeSkipped(allRows);
         List<List<FigmaRow>> groups = FigmaExcelFile.groupContiguous(toProcess);
-        System.out.println("Loaded " + allRows.size() + " row(s) from " + figmaExcelPath
-                + (null != platform && !platform.isBlank() ? " (platform=" + platform + ")" : "") + " ("
-                + (allRows.size() - toProcess.size()) + " skipped/excluded, " + groups.size() + " test(s) to upload)");
+        Log.field("Excel file", figmaExcelPath);
+        Log.field("Platform filter", (null != platform && !platform.isBlank()) ? platform : "(all)");
+        Log.field("Rows", allRows.size() + " total, " + toProcess.size() + " to upload, "
+                + (allRows.size() - toProcess.size()) + " skipped/excluded");
+        Log.field("Tests", groups.size() + " (scenario groups + standalone rows)");
 
         // One EyesRunner (and its background "universal core" process), and one BatchInfo,
         // shared across the whole run - so every upload groups into a single batch instead
@@ -96,9 +99,11 @@ public class UploadFromFigma {
         EyesRunner runner = new ImageRunner();
         BatchInfo batch = new BatchInfo(BatchSupport.withCiRunSuffix(batchName));
         try {
+            int groupNum = 1;
             for (List<FigmaRow> group : groups) {
-                processGroup(runner, group, figmaClient, appName, applitoolsApiKey, applitoolsServerUrl, cacheDir,
-                        forceRefresh, batch);
+                processGroup(runner, group, groupNum, groups.size(), figmaClient, appName, applitoolsApiKey,
+                        applitoolsServerUrl, cacheDir, forceRefresh, batch);
+                groupNum++;
             }
         } finally {
             BatchSupport.closeBatch(batch);
@@ -108,20 +113,19 @@ public class UploadFromFigma {
         ExcelHelper.writeRows(figmaExcelPath, allRows);
 
         long succeeded = toProcess.stream().filter(r -> "Success".equals(r.status)).count();
-        System.out.println();
-        System.out.println(succeeded + " of " + toProcess.size() + " row(s) succeeded. Results written to "
+        Log.summary(succeeded + " of " + toProcess.size() + " row(s) succeeded. Results written to "
                 + figmaExcelPath);
     }
 
-    private static void processGroup(EyesRunner runner, List<FigmaRow> group, FigmaClient figmaClient,
-            String appName, String applitoolsApiKey, String applitoolsServerUrl, String cacheDir,
-            boolean forceRefresh, BatchInfo batch) {
+    private static void processGroup(EyesRunner runner, List<FigmaRow> group, int groupNum, int totalGroups,
+            FigmaClient figmaClient, String appName, String applitoolsApiKey, String applitoolsServerUrl,
+            String cacheDir, boolean forceRefresh, BatchInfo batch) {
         FigmaRow firstRow = group.get(0);
         String scenarioName = FigmaExcelFile.scenarioNameOf(firstRow);
         boolean isScenario = null != scenarioName;
-        System.out.println(isScenario
-                ? "Processing scenario \"" + scenarioName + "\" (" + group.size() + " step(s))"
-                : "Processing: " + firstRow.figmaUrl);
+        Log.section("[" + groupNum + "/" + totalGroups + "] "
+                + (isScenario ? "Scenario: " + scenarioName + " (" + group.size() + " step(s))"
+                        : "Standalone: " + firstRow.figmaUrl));
         try {
             List<Baseline.ScenarioStep> steps = new ArrayList<>();
             for (FigmaRow row : group) {
@@ -162,7 +166,7 @@ public class UploadFromFigma {
                 row.status = "Failed";
                 row.errorMessage = ex.getMessage();
             }
-            System.out.println(ex);
+            Log.line("FAILED: " + ex);
             ex.printStackTrace();
         }
     }

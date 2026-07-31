@@ -83,23 +83,24 @@ public class Baseline {
             if (null == resolvedViewport) {
                 BufferedImage firstImage = ImageIO.read(new File(steps.get(0).imagePath));
                 resolvedViewport = new RectangleSize(firstImage.getWidth(), firstImage.getHeight());
-                System.out.println("Viewport is not provided. Using first step's image size: "
-                        + resolvedViewport.getWidth() + " x " + resolvedViewport.getHeight() + " pixels");
+                Log.line("Viewport not provided - using first step's image size: " + resolvedViewport.getWidth()
+                        + "x" + resolvedViewport.getHeight());
             }
             eyesImages.open(appName, scenarioTestName, resolvedViewport);
+            int stepNum = 1;
             for (ScenarioStep step : steps) {
                 File imageFile = new File(step.imagePath);
-                System.out.println("Step '" + step.stepName + "' - Image File '" + imageFile.getName()
-                        + "' exists? " + imageFile.exists());
+                Log.line("step " + stepNum + "/" + steps.size() + ": " + step.stepName + " (image: "
+                        + imageFile.getName() + ", exists=" + imageFile.exists() + ")");
                 BufferedImage img = ImageIO.read(imageFile);
                 eyesImages.check(step.stepName, Target.image(img));
-                System.out.println("Checked step: " + step.stepName);
+                stepNum++;
             }
             TestResults testResults = eyesImages.close(false);
-            System.out.println("TestResults: " + testResults);
+            Log.testResults(testResults);
             return new BaselineUploadResult(testResults, resolvedViewport);
         } catch (Exception ex) {
-            System.out.println(ex);
+            Log.line("FAILED: " + ex);
             ex.printStackTrace();
             return new BaselineUploadResult(null, viewportSize);
         } finally {
@@ -115,23 +116,19 @@ public class Baseline {
 
         try {
             File imageFile = new File(baseLineFilePath);
-            System.out.println("Image File '" + imageFile.getName() + "' exists? " + imageFile.exists());
+            Log.line("image: " + imageFile.getName() + " (exists=" + imageFile.exists() + ")");
             BufferedImage img = ImageIO.read(imageFile);
-            System.out.println("Image read");
             if (null == viewportSize) {
                 viewportSize = new RectangleSize(img.getWidth(), img.getHeight());
-                System.out.println(
-                        "Viewport is not provided. Using provided image's size: " + img.getWidth() + " x "
-                                + img.getHeight() + " pixels");
+                Log.line("Viewport not provided - using image size: " + img.getWidth() + "x" + img.getHeight());
             }
             eyesImages.open(appName, testName, viewportSize);
             eyesImages.check(imageFile.getName(), Target.image(img));
-            System.out.println("After eyes.check");
             TestResults testResults = eyesImages.close(false);
-            System.out.println("TestResults: " + testResults);
+            Log.testResults(testResults);
             return new BaselineUploadResult(testResults, viewportSize);
         } catch (Exception ex) {
-            System.out.println(ex);
+            Log.line("FAILED: " + ex);
             ex.printStackTrace();
             return new BaselineUploadResult(null, viewportSize);
         } finally {
@@ -163,8 +160,8 @@ public class Baseline {
         // "true" and a first-ever test for this baselineName still shows Unresolved
         // (not Passed) in the dashboard, the SDK call isn't the problem; check the
         // Applitools account/project's "Auto save new tests" setting instead.
-        System.out.println("Eyes configured with saveNewTests=" + eyesImages.getConfiguration().getSaveNewTests()
-                + " for baselineEnvName=" + baselineName);
+        Log.field("saveNewTests", String.valueOf(eyesImages.getConfiguration().getSaveNewTests()));
+        Log.field("Baseline Env Name", baselineName);
         return eyesImages;
     }
 
