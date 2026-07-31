@@ -19,7 +19,25 @@ if ! gh auth status &> /dev/null; then
     exit 1
 fi
 
-read -rp "Version to release (e.g. 1.2.0, no 'v' prefix): " VERSION
+LATEST_TAG=$(gh release view --repo "$REPO" --json tagName -q .tagName 2>/dev/null || true)
+
+if [[ -z "$LATEST_TAG" ]]; then
+    echo "No existing releases found in $REPO - this will be the first one."
+    SUGGESTED_VERSION="0.1.0"
+elif [[ "${LATEST_TAG#v}" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+    echo "Latest release: $LATEST_TAG"
+    SUGGESTED_VERSION="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.$((BASH_REMATCH[3] + 1))"
+else
+    echo "Latest release: $LATEST_TAG (not x.y.z, can't suggest the next version)"
+    SUGGESTED_VERSION=""
+fi
+
+if [[ -n "$SUGGESTED_VERSION" ]]; then
+    read -rp "Version to release [default: $SUGGESTED_VERSION, next patch]: " VERSION
+    VERSION="${VERSION:-$SUGGESTED_VERSION}"
+else
+    read -rp "Version to release (e.g. 1.2.0, no 'v' prefix): " VERSION
+fi
 if [[ -z "$VERSION" ]]; then
     echo "Error: version is required." >&2
     exit 1
