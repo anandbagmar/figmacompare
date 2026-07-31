@@ -4,6 +4,8 @@ import java.io.File;
 
 import com.applitools.eyes.BatchInfo;
 
+import io.eot.figmacompare.config.AppConfig;
+
 public class BatchSupport {
 
     private BatchSupport() {
@@ -30,14 +32,16 @@ public class BatchSupport {
     }
 
     /**
-     * Appends " - #<run number>" when running in GitHub Actions - GITHUB_RUN_NUMBER is
-     * set automatically by the runner for every job, no workflow wiring needed - so
-     * batches from different CI runs are distinguishable in the Applitools dashboard
-     * (matches the run number shown in the Actions UI, e.g. "Java CI with Gradle #26").
-     * No-op outside CI (e.g. local runs), where the env var isn't set.
+     * Appends " - #<run number>" when the consumer sets CI_RUN_NUMBER (env var or
+     * config.properties - see AppConfig). This library is CI-provider agnostic, so it
+     * never reads a provider-specific variable (e.g. GitHub Actions' GITHUB_RUN_NUMBER)
+     * itself - the consumer's own CI workflow is responsible for mapping its provider's
+     * run number into this generic key (see figmacompare-sample's gradle.yml, which
+     * sets CI_RUN_NUMBER: ${{ github.run_number }}), so batches from different CI runs
+     * are distinguishable in the Applitools dashboard. No-op when unset (e.g. local runs).
      */
     public static String withCiRunSuffix(String batchName) {
-        String runNumber = System.getenv("GITHUB_RUN_NUMBER");
+        String runNumber = AppConfig.get("CI_RUN_NUMBER");
         return (null == runNumber || runNumber.isBlank()) ? batchName : batchName + " - #" + runNumber;
     }
 
