@@ -78,6 +78,19 @@ publishing {
     }
 }
 
+// "publishToMavenLocal" (the lifecycle task, unlike "publishAllPublicationsTo
+// MavenLocalRepository") depends on this one specifically - the built-in alias task
+// without "Repository" in the name - not the generically-generated one.
+tasks.named("publishMavenJavaPublicationToMavenLocal") {
+    doLast {
+        println()
+        println "Published ${project.group}:${project.name}:${project.version} to mavenLocal (~/.m2/repository)."
+        println "To use it from figmacompare-sample, run there with:"
+        println "    -PfigmacompareVersion=${project.version}"
+        println()
+    }
+}
+
 wrapper {
     gradleVersion = project.gradleVersion
 }
