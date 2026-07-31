@@ -99,7 +99,8 @@ public class FigmaClient {
                 .build();
         try (Response response = executeWithRetry(request)) {
             if (!response.isSuccessful()) {
-                throw new RuntimeException("Figma API call failed [" + response.code() + "]: " + url);
+                throw new RuntimeException("Figma API call failed [" + response.code() + "]: " + url
+                        + " - response body: " + readBodySafely(response));
             }
             return GSON.fromJson(response.body().string(), JsonObject.class);
         } catch (IOException ex) {
@@ -111,7 +112,8 @@ public class FigmaClient {
         Request request = new Request.Builder().url(imageUrl).build();
         try (Response response = executeWithRetry(request)) {
             if (!response.isSuccessful()) {
-                throw new RuntimeException("Failed to download Figma image [" + response.code() + "]: " + imageUrl);
+                throw new RuntimeException("Failed to download Figma image [" + response.code() + "]: " + imageUrl
+                        + " - response body: " + readBodySafely(response));
             }
             Files.createDirectories(destination.getParentFile().toPath());
             try (FileOutputStream out = new FileOutputStream(destination)) {
@@ -176,6 +178,26 @@ public class FigmaClient {
 
     private static boolean isRetryableStatus(int code) {
         return code == 429 || (code >= 500 && code < 600);
+    }
+
+    /**
+     * Figma error responses normally carry a JSON body (e.g. {"status":403,"err":"..."})
+     * that says exactly why - without it, a 403 is indistinguishable from an actual
+     * permission problem, a stale/moved node, or a rate limit Figma chose to report as
+     * 403 instead of 429. Never throws - a failure to read the body is folded into the
+     * returned string instead, so it never masks the original HTTP status in the caller's
+     * exception.
+     */
+    private static String readBodySafely(Response response) {
+        try {
+            String body = null == response.body() ? null : response.body().string();
+            if (null == body || body.isBlank()) {
+                return "(empty response body)";
+            }
+            return body.length() > 500 ? body.substring(0, 500) + "...(truncated)" : body;
+        } catch (IOException ex) {
+            return "(could not read response body: " + ex.getMessage() + ")";
+        }
     }
 
     private static Duration retryDelayFor(Response response, Duration fallback) {
