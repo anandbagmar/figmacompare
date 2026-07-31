@@ -28,6 +28,12 @@ public class Driver {
     private Driver() {
     }
 
+    // Defaults to headed mode (matches prior behavior for local runs); set HEADLESS=true
+    // (any case) to run headless, e.g. on a CI runner with no display.
+    private static boolean isHeadless() {
+        return Boolean.parseBoolean(System.getenv("HEADLESS"));
+    }
+
     public static WebDriver create() {
         String browser = (null == System.getenv("BROWSER")) ? "chrome" : System.getenv("BROWSER");
         return createDriverFor(browser);
@@ -71,6 +77,9 @@ public class Driver {
     private static WebDriver createEdgeDriver() {
         EdgeOptions options = new EdgeOptions();
         options.addArguments("--disable-notifications");
+        if (isHeadless()) {
+            options.addArguments("--headless=new", "--disable-gpu", "--window-size=1920,1080");
+        }
         Map<String, Object> prefs = new HashMap<>();
         prefs.put("profile.default_content_setting_values.notifications", 2);
         options.setExperimentalOption("prefs", prefs);
@@ -102,6 +111,13 @@ public class Driver {
         options.setExperimentalOption("excludeSwitches", new String[] { "enable-automation" });
         options.addArguments("--remote-allow-origins=*");
         options.addArguments("--disable-notifications");
+        if (isHeadless()) {
+            // --no-sandbox/--disable-dev-shm-usage: needed on CI runners (e.g. GitHub
+            // Actions), which run as root with a small /dev/shm - Chrome otherwise
+            // refuses to start or crashes under load.
+            options.addArguments("--headless=new", "--disable-gpu", "--window-size=1920,1080",
+                    "--no-sandbox", "--disable-dev-shm-usage");
+        }
         Map<String, Object> prefs = new HashMap<>();
         prefs.put("profile.default_content_setting_values.notifications", 2);
         options.setExperimentalOption("prefs", prefs);
@@ -112,6 +128,9 @@ public class Driver {
         FirefoxOptions options = new FirefoxOptions();
         options.addPreference("dom.webnotifications.enabled", false);
         options.addPreference("permissions.default.desktop-notification", 2);
+        if (isHeadless()) {
+            options.addArguments("-headless");
+        }
         return new FirefoxDriver(options);
     }
 
