@@ -25,6 +25,18 @@ repositories {
 
 compileJava { options.encoding = "UTF-8" }
 
+// Lets AppConfig.libraryVersion() read this back at runtime via
+// getPackage().getImplementationVersion() - only populated when running from the built
+// jar (i.e. as a real consumer dependency), not from raw .class files in an IDE/test run.
+jar {
+    manifest {
+        attributes(
+            "Implementation-Title": "figmacompare",
+            "Implementation-Version": project.version
+        )
+    }
+}
+
 dependencies {
     // A regular (non-enforced) platform, since enforcedPlatform shouldn't be published -
     // it would force this exact Selenium version on every consumer, overriding their own.

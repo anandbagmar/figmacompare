@@ -21,6 +21,7 @@ import com.applitools.eyes.selenium.fluent.Target;
 import com.applitools.eyes.visualgrid.services.RunnerOptions;
 import com.applitools.eyes.visualgrid.services.VisualGridRunner;
 
+import io.eot.figmacompare.config.AppConfig;
 import io.eot.figmacompare.eyes.BatchSupport;
 import io.eot.figmacompare.eyes.ComparisonResultRecorder;
 import io.eot.figmacompare.eyes.EyesConfigSupport;
@@ -58,6 +59,7 @@ public class WebCompareRunner {
     private WebDriver driver;
 
     public static void beforeSuite() {
+        System.out.println("Using io.eot:figmacompare version: " + AppConfig.libraryVersion());
         visualGridRunner = new VisualGridRunner(new RunnerOptions().testConcurrency(10));
         visualGridRunner.setDontCloseBatches(true);
         batchInfo = BatchSupport.createBatch(DEFAULT_APP_NAME, userName);

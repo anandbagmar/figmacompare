@@ -80,4 +80,18 @@ public class AppConfig {
         }
         return apiKey;
     }
+
+    /**
+     * The io.eot:figmacompare version actually on the classpath, read from the jar's own
+     * manifest (Implementation-Version - see build.gradle's jar.manifest block) rather
+     * than trusted from what a consumer's build.gradle merely asked for, so it reflects
+     * what's really loaded (catches a stale mavenLocal() cache, wrong -PfigmacompareVersion,
+     * etc). Only populated when running from the built jar - returns "unknown
+     * (not running from a packaged jar - e.g. an IDE/test run of figmacompare itself)"
+     * otherwise, since a manifest doesn't exist for raw .class files.
+     */
+    public static String libraryVersion() {
+        String version = AppConfig.class.getPackage().getImplementationVersion();
+        return null != version ? version : "unknown (not running from a packaged jar)";
+    }
 }

@@ -24,6 +24,7 @@ public class MobileRunSupport {
     }
 
     public static Session beforeSuite(String defaultBatchName) {
+        System.out.println("Using io.eot:figmacompare version: " + AppConfig.libraryVersion());
         AppiumDriverLocalService server = AppiumServerSupport.start(AppiumServerSupport.defaultLogFileDir());
         String serverUrl = server.getUrl().toString();
         BatchInfo batch = BatchSupport.createSuiteBatch(AppConfig.get("APPLITOOLS_BATCH_NAME", defaultBatchName));

@@ -46,6 +46,7 @@ public class UploadFromFigma {
     private static final List<String> VALID_PLATFORMS = List.of("Web", "Android", "iOS");
 
     public static void main(String[] args) {
+        System.out.println("Using io.eot:figmacompare version: " + AppConfig.libraryVersion());
         String pathOverride = args.length > 0 ? args[0] : System.getProperty("figmaExcel");
         String figmaExcelPath = FigmaExcelFile.resolvePath(pathOverride);
         boolean forceRefresh = args.length > 1 ? Boolean.parseBoolean(args[1]) : Boolean.getBoolean("forceRefresh");
