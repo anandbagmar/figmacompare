@@ -31,14 +31,42 @@ shims around this library's plain-Java runners).
   (`Web`/`Android`/`iOS`) scopes the run to just that platform's rows instead of the
   whole file; an invalid value hard-fails immediately.
 
-## Build and publish locally
+## Local dev loop
 
 ```bash
 ./gradlew publishToMavenLocal
 ```
 
-Consumers add `mavenLocal()` to their repositories and depend on
-`io.eot:figmacompare:0.0.1`.
+Publishes as `io.eot:figmacompare:0.0.1-local` (the default when `-PpublishVersion` isn't
+given). Consumers that list `mavenLocal()` first in their `repositories {}` (see
+`figmacompare-sample`'s `build.gradle`) pick this up automatically - useful for iterating
+on a change here and testing it in a consumer before cutting a real release.
+
+## Publishing a release
+
+Releases are on-demand, not automatic on every push - publishing to GitHub Packages only
+happens when you create a GitHub Release, via `.github/workflows/publish.yml`. The
+published version comes from the release's tag, so there's nothing to bump in
+`build.gradle` beforehand.
+
+```bash
+gh release create v1.2.0 --repo anandbagmar/figmacompare \
+  --title "v1.2.0" --notes "<what changed>"
+```
+
+This publishes `io.eot:figmacompare:1.2.0` (the tag's `v` prefix is stripped) to
+[GitHub Packages](https://github.com/anandbagmar/figmacompare/packages), using the
+workflow's own `GITHUB_TOKEN` - no secret to configure here. Watch it with:
+
+```bash
+gh run list --repo anandbagmar/figmacompare --workflow "Publish to GitHub Packages" --limit 1
+```
+
+**Consumers always need an authenticated token to resolve from GitHub Packages' Maven
+registry**, even once this repo is public - that's a GitHub Packages limitation for Maven/
+Gradle specifically (unlike its npm registry). A consumer's token needs `repo` (if this
+repo is still private) and `read:packages`; see `figmacompare-sample`'s
+`README_uploadFromFigma.md` for a worked example of setting that up as `FIGMACOMPARE_PAT`.
 
 ## Configuration a consumer needs to provide
 
