@@ -13,7 +13,10 @@ plugins {
 }
 
 group = 'io.eot'
-version = '0.0.1'
+// Real releases pass -PpublishVersion=<version> (see .github/workflows/publish.yml,
+// which derives it from the GitHub Release tag) - this default is only ever used for
+// everyday `./gradlew publishToMavenLocal` local-dev iteration, never published anywhere.
+version = project.findProperty('publishVersion') ?: '0.0.1-local'
 
 repositories {
     mavenLocal()
@@ -52,6 +55,18 @@ publishing {
     }
     repositories {
         mavenLocal()
+        // Real releases only - see .github/workflows/publish.yml. Consuming this
+        // requires a GitHub token with read:packages (this repo is private), even once
+        // the repo itself is public - GitHub Packages' Maven registry always requires
+        // authentication to consume, unlike its npm registry.
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/anandbagmar/figmacompare")
+            credentials {
+                username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
+                password = project.findProperty("gpr.token") ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
     }
 }
 
