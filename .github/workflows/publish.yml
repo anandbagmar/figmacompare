@@ -15,14 +15,19 @@ jobs:
       # Required for GITHUB_TOKEN to have write access to this repo's own package
       # registry - not granted by default.
       packages: write
+      # Needed only for the "Trim old workflow runs" step below.
+      actions: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: 'temurin'
+      # Gate: a release with failing tests must not publish - same tests as ci.yml.
+      - name: Run unit tests
+        run: ./gradlew test
       - name: Compute version from release tag
         id: version
         run: |
@@ -33,3 +38,14 @@ jobs:
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Keeps GitHub Actions run history (and its storage/minutes usage) small on a free
+      # account - deletes everything but the 5 most recent runs of this workflow. Safe:
+      # only removes CI run history/logs, never touches releases or published packages.
+      - name: Trim old workflow runs (keep last 5)
+        if: always()
+        run: |
+          gh run list --workflow "${{ github.workflow }}" --repo "${{ github.repository }}" \
+              --limit 100 --json databaseId --jq '.[5:][].databaseId' \
+            | xargs -r -n1 gh run delete --repo "${{ github.repository }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

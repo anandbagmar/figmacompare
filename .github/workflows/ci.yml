@@ -1,0 +1,37 @@
+name: CI
+
+# Fast feedback on every push to any branch - just compiles and runs the unit tests
+# (src/test), independent of the release-publish workflow (see publish.yml, which also
+# runs these same tests as a gate before publishing).
+on:
+  push:
+    branches: ['**']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Needed only for the "Trim old workflow runs" step below.
+      actions: write
+
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Run unit tests
+        run: ./gradlew test
+      # Keeps GitHub Actions run history (and its storage/minutes usage) small on a free
+      # account - deletes everything but the 5 most recent runs of this workflow. Safe:
+      # only removes CI run history/logs, never touches code, tags, or published packages.
+      - name: Trim old workflow runs (keep last 5)
+        if: always()
+        run: |
+          gh run list --workflow "${{ github.workflow }}" --repo "${{ github.repository }}" \
+              --limit 100 --json databaseId --jq '.[5:][].databaseId' \
+            | xargs -r -n1 gh run delete --repo "${{ github.repository }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
