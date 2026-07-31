@@ -93,7 +93,7 @@ public class UploadFromFigma {
         // shared across the whole run - so every upload groups into a single batch instead
         // of starting/stopping the runner and creating a new batch ID per row.
         EyesRunner runner = new ImageRunner();
-        BatchInfo batch = new BatchInfo(batchName);
+        BatchInfo batch = new BatchInfo(BatchSupport.withCiRunSuffix(batchName));
         try {
             for (List<FigmaRow> group : groups) {
                 processGroup(runner, group, figmaClient, appName, applitoolsApiKey, applitoolsServerUrl, cacheDir,
