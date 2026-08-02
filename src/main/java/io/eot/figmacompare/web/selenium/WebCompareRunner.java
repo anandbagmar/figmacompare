@@ -21,6 +21,7 @@ import com.applitools.eyes.selenium.fluent.Target;
 import com.applitools.eyes.visualgrid.services.RunnerOptions;
 import com.applitools.eyes.visualgrid.services.VisualGridRunner;
 
+import io.eot.figmacompare.Log;
 import io.eot.figmacompare.config.AppConfig;
 import io.eot.figmacompare.eyes.BatchSupport;
 import io.eot.figmacompare.eyes.ComparisonResultRecorder;
@@ -129,11 +130,25 @@ public class WebCompareRunner {
             viewportSize = DEFAULT_VIEWPORT;
         }
 
+        Log.section((null != FigmaExcelFile.scenarioNameOf(firstRow) ? "Scenario: " + scenarioTestName + " ("
+                + group.size() + " step(s))" : "Standalone: " + scenarioTestName));
+        // Same field set/order as Baseline.configureEyes() in uploadFromFigma - compare
+        // side by side when a test unexpectedly shows up as new instead of matching an
+        // existing baseline.
+        Log.field("App Name", appName);
+        Log.field("Test Name", scenarioTestName);
+        Log.field("Baseline Env Name", baselineName);
+        Log.field("Viewport", viewportSize.getWidth() + "x" + viewportSize.getHeight());
+        Log.field("Host OS", System.getProperty("os.name"));
+        Log.field("Batch Name", null != batchInfo ? batchInfo.getName() : "(none)");
+
         Eyes eyesSelenium = initialiseEyes(appName, baselineName, viewportSize);
         try {
             eyesSelenium.open(driver, appName, scenarioTestName, viewportSize);
             for (FigmaRow row : group) {
                 String stepName = resolveStepName(row);
+                Log.line("step: " + stepName + " (url: " + row.appUrlOrScreenName + ", locator: "
+                        + (isBlank(row.locator) ? "(full page)" : row.locator) + ")");
                 driver.get(row.appUrlOrScreenName);
                 if (isBlank(row.locator)) {
                     eyesSelenium.check(stepName, Target.window());
@@ -147,6 +162,7 @@ public class WebCompareRunner {
                 row.validationStatus = "Failed";
                 row.errorMessage = ex.getMessage();
             }
+            Log.line("FAILED: " + ex);
             eyesSelenium.abortIfNotClosed();
             throw ex;
         }
@@ -167,6 +183,12 @@ public class WebCompareRunner {
 
         eyes.setConfiguration(config);
         eyes.setLogHandler(new StdoutLogHandler(true));
+
+        // Same rationale as Baseline.configureEyes()'s diagnostic - compareWithFigma
+        // deliberately sets saveNewTests=false (see EyesConfigSupport.baseConfiguration),
+        // so a "New" result here will never auto-resolve to Passed the way an upload can.
+        Log.field("saveNewTests", String.valueOf(config.getSaveNewTests()));
+        Log.field("Match Level", String.valueOf(config.getMatchLevel()));
 
         return eyes;
     }

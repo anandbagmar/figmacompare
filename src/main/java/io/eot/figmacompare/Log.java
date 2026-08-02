@@ -8,7 +8,7 @@ import com.applitools.eyes.TestResults;
  * handful of things these runners print consistently formatted instead of a raw mix of
  * unindented System.out.println calls. Not a general-purpose logger.
  */
-final class Log {
+public final class Log {
 
     private static final String RULE = "=".repeat(60);
     private static final String SUB_RULE = "-".repeat(60);
@@ -16,37 +16,37 @@ final class Log {
     private Log() {
     }
 
-    static void header(String title) {
+    public static void header(String title) {
         System.out.println();
         System.out.println(RULE);
         System.out.println(title);
         System.out.println(RULE);
     }
 
-    static void field(String label, String value) {
+    public static void field(String label, String value) {
         System.out.printf("  %-18s: %s%n", label, value);
     }
 
-    static void section(String title) {
+    public static void section(String title) {
         System.out.println();
         System.out.println(SUB_RULE);
         System.out.println(title);
         System.out.println(SUB_RULE);
     }
 
-    static void line(String text) {
+    public static void line(String text) {
         System.out.println("  " + text);
     }
 
     /** Status here is the authoritative Passed/Unresolved/Failed/... from Applitools itself. */
-    static void testResults(TestResults results) {
+    public static void testResults(TestResults results) {
         field("Status", String.valueOf(results.getStatus()));
         field("Steps", results.getSteps() + " (matches=" + results.getMatches() + ", mismatches="
                 + results.getMismatches() + ", missing=" + results.getMissing() + ")");
         field("Batch URL", String.valueOf(results.getUrl()));
     }
 
-    static void summary(String title) {
+    public static void summary(String title) {
         System.out.println();
         System.out.println(RULE);
         System.out.println(title);

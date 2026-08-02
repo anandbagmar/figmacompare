@@ -86,6 +86,8 @@ public class Baseline {
                 Log.line("Viewport not provided - using first step's image size: " + resolvedViewport.getWidth()
                         + "x" + resolvedViewport.getHeight());
             }
+            Log.field("Test Name", scenarioTestName);
+            Log.field("Viewport", resolvedViewport.getWidth() + "x" + resolvedViewport.getHeight());
             eyesImages.open(appName, scenarioTestName, resolvedViewport);
             int stepNum = 1;
             for (ScenarioStep step : steps) {
@@ -122,6 +124,8 @@ public class Baseline {
                 viewportSize = new RectangleSize(img.getWidth(), img.getHeight());
                 Log.line("Viewport not provided - using image size: " + img.getWidth() + "x" + img.getHeight());
             }
+            Log.field("Test Name", testName);
+            Log.field("Viewport", viewportSize.getWidth() + "x" + viewportSize.getHeight());
             eyesImages.open(appName, testName, viewportSize);
             eyesImages.check(imageFile.getName(), Target.image(img));
             TestResults testResults = eyesImages.close(false);
@@ -155,13 +159,22 @@ public class Baseline {
             config.setBatch(batch);
         }
         eyesImages.setConfiguration(config);
+        // Log every setting that plays into which baseline Eyes matches against -
+        // App Name, Batch Name, Host OS/App, and Baseline Env Name together, all in one
+        // parallel format with WebCompareRunner.initialiseEyes()'s own log block, so the
+        // two are easy to diff when a scenario mysteriously shows up as a new test on
+        // one side but not the other.
+        Log.field("App Name", appName);
+        Log.field("Baseline Env Name", baselineName);
+        Log.field("Host OS", String.valueOf(config.getHostOS()));
+        Log.field("Host App", String.valueOf(config.getHostApp()));
+        Log.field("Batch Name", null != batch ? batch.getName() : "(none)");
         // Diagnostic: confirms saveNewTests actually round-tripped through
         // setConfiguration() and is what Eyes will use at close() - if this prints
         // "true" and a first-ever test for this baselineName still shows Unresolved
         // (not Passed) in the dashboard, the SDK call isn't the problem; check the
         // Applitools account/project's "Auto save new tests" setting instead.
         Log.field("saveNewTests", String.valueOf(eyesImages.getConfiguration().getSaveNewTests()));
-        Log.field("Baseline Env Name", baselineName);
         return eyesImages;
     }
 
