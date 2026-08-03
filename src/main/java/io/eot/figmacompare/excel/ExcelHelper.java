@@ -43,13 +43,16 @@ public class ExcelHelper {
      * The single, fixed schema for the unified Figma visual-testing Excel file. Always
      * written in this order, regardless of what order columns happen to be in on disk -
      * this keeps read/write simple since the file is now updated in place at every stage
-     * instead of being copied between stage-specific files.
+     * instead of being copied between stage-specific files. Grouped manual-input columns
+     * first (including Locator, which used to be stranded among the write-back columns),
+     * then upload-stage write-back columns, then compare-stage write-back columns - see
+     * CleanExcel for which of these a "clean" run resets.
      */
     private static final List<String> ALL_COLUMNS = List.of(
             COL_FIGMA_URL, COL_PLATFORM, COL_APP_URL_OR_SCREEN_NAME, COL_SCENARIO_NAME, COL_TEST_NAME,
-            COL_BASELINE_ENV_NAME, COL_VIEWPORT, COL_SCALE, COL_FORMAT, COL_SKIP,
+            COL_BASELINE_ENV_NAME, COL_VIEWPORT, COL_SCALE, COL_FORMAT, COL_SKIP, COL_LOCATOR,
             COL_APP_NAME, COL_BASELINE_BATCH_URL, COL_STATUS, COL_ERROR_MESSAGE,
-            COL_LOCATOR, COL_COMPARISON_BATCH_URL, COL_VALIDATION_STATUS);
+            COL_COMPARISON_BATCH_URL, COL_VALIDATION_STATUS);
 
     private ExcelHelper() {
     }
