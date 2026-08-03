@@ -50,29 +50,43 @@ on a change here and testing it in a consumer before cutting a real release.
 
 ## Publishing a release
 
-Releases are on-demand, not automatic on every push - publishing to GitHub Packages only
-happens when you create a GitHub Release, via `.github/workflows/publish.yml`. The
-published version comes from the release's tag, so there's nothing to bump in
-`build.gradle` beforehand.
+Releases are on-demand, not automatic on every push - triggered by creating a GitHub
+Release, via `scripts/create-release.sh` (prompts for version/title/notes) or directly:
 
 ```bash
 gh release create v1.2.0 --repo anandbagmar/figmacompare \
   --title "v1.2.0" --notes "<what changed>"
 ```
 
-This publishes `io.eot:figmacompare:1.2.0` (the tag's `v` prefix is stripped) to
-[GitHub Packages](https://github.com/anandbagmar/figmacompare/packages), using the
-workflow's own `GITHUB_TOKEN` - no secret to configure here. Watch it with:
+This repo is public, and consumers resolve it via **[JitPack](https://jitpack.io)**,
+which builds directly from a tag on demand - **there is nothing to push anywhere**.
+`.github/workflows/publish.yml` runs on the release event, but only to: gate on tests
+passing, attach a built jar directly to the GitHub Release (a token-free download,
+independent of JitPack), and warm JitPack's build for that tag so the first real
+consumer isn't stuck waiting on a slow cold build (JitPack usually finishes in well
+under the workflow's own timeout, but there's no hard guarantee). Watch it with:
 
 ```bash
-gh run list --repo anandbagmar/figmacompare --workflow "Publish to GitHub Packages" --limit 1
+gh run list --repo anandbagmar/figmacompare --workflow "Publish figmacompare release" --limit 1
 ```
 
-**Consumers always need an authenticated token to resolve from GitHub Packages' Maven
-registry**, even once this repo is public - that's a GitHub Packages limitation for Maven/
-Gradle specifically (unlike its npm registry). A consumer's token needs `repo` (if this
-repo is still private) and `read:packages`; see `figmacompare-sample`'s
-`README_uploadFromFigma.md` for a worked example of setting that up as `FIGMACOMPARE_PAT`.
+**No token is needed to consume this.** A consumer adds JitPack as a repository and
+depends on it like any other Maven coordinate:
+
+```groovy
+repositories {
+    maven { url 'https://jitpack.io' }
+}
+dependencies {
+    implementation "com.github.anandbagmar:figmacompare:v1.2.0"   // exact tag, including the "v"
+}
+```
+
+Note the groupId: JitPack always uses `com.github.<owner>` for a single-module project
+(not configurable) - this intentionally differs from the `io.eot.figmacompare` Java
+package namespace used throughout the actual code. That mismatch is normal for a
+JitPack-distributed library (the Maven coordinate is a hosting/packaging artifact,
+unrelated to the code's own namespace) - it does not indicate anything is wrong.
 
 ## Configuration a consumer needs to provide
 

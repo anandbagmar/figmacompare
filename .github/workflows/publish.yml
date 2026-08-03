@@ -1,8 +1,12 @@
-name: Publish to GitHub Packages
+name: Publish figmacompare release
 
-# On-demand only, not on every push - triggered by creating a GitHub Release. The
-# published version comes from the release's tag (e.g. tag v1.2.0 -> published as
-# 1.2.0), so there's nothing to bump by hand in build.gradle before cutting a release.
+# On-demand only, not on every push - triggered by creating a GitHub Release. Consumers
+# resolve this library from JitPack (com.github.anandbagmar:figmacompare:<tag>), which
+# builds directly from this public repo's tags on demand - there's nothing here that
+# "publishes" to a package registry anymore. This workflow instead: gates the release on
+# tests passing, attaches a built jar directly to the GitHub Release (a token-free,
+# GitHub-hosted download independent of JitPack), and warms JitPack's build so the first
+# real consumer doesn't hit a slow cold build. See README.md's "Publishing a release".
 on:
   release:
     types: [published]
@@ -11,10 +15,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      # Required for GITHUB_TOKEN to have write access to this repo's own package
-      # registry - not granted by default.
-      packages: write
+      contents: write
       # Needed only for the "Trim old workflow runs" step below.
       actions: write
 
@@ -25,7 +26,9 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-      # Gate: a release with failing tests must not publish - same tests as ci.yml.
+      # Gate: a release with failing tests must not be considered official - same tests
+      # as ci.yml. Note this can no longer gate JitPack itself (see README) - JitPack
+      # will happily build any tag regardless of what this workflow does.
       - name: Run unit tests
         run: ./gradlew test
       - name: Compute version from release tag
@@ -33,14 +36,26 @@ jobs:
         run: |
           TAG="${{ github.event.release.tag_name }}"
           echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
-      - name: Publish to GitHub Packages
-        run: ./gradlew publishMavenJavaPublicationToGitHubPackagesRepository -PpublishVersion=${{ steps.version.outputs.version }}
+      - name: Build jar
+        run: ./gradlew jar -PpublishVersion=${{ steps.version.outputs.version }}
+      - name: Attach jar to the GitHub Release
+        run: gh release upload "${{ github.event.release.tag_name }}" "build/libs/figmacompare-${{ steps.version.outputs.version }}.jar"
         env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # JitPack builds public repos lazily, on first request for a given tag - this warms
+      # that build immediately instead of leaving a cold build (can take a few minutes)
+      # to whoever consumes this release first. Best-effort: if this fails/times out, the
+      # first real consumer just triggers the same cold build themselves - nothing here
+      # is required for the release itself to succeed.
+      - name: Warm the JitPack build
+        continue-on-error: true
+        run: |
+          curl -sf --max-time 240 \
+            "https://jitpack.io/api/builds/com.github.anandbagmar/figmacompare/${{ github.event.release.tag_name }}" \
+            || true
       # Keeps GitHub Actions run history (and its storage/minutes usage) small on a free
       # account - deletes everything but the 5 most recent runs of this workflow. Safe:
-      # only removes CI run history/logs, never touches releases or published packages.
+      # only removes CI run history/logs, never touches releases or their assets.
       - name: Trim old workflow runs (keep last 5)
         if: always()
         run: |

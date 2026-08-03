@@ -12,11 +12,25 @@ plugins {
     id "maven-publish"
 }
 
-group = 'io.eot'
-// Real releases pass -PpublishVersion=<version> (see .github/workflows/publish.yml,
-// which derives it from the GitHub Release tag) - this default is only ever used for
-// everyday `./gradlew publishToMavenLocal` local-dev iteration, never published anywhere.
-version = project.findProperty('publishVersion') ?: '0.0.1-local'
+// JitPack builds this project with `-Pgroup=com.github.<owner> -Pversion=<tag>` (its own
+// convention - see docs.jitpack.io) and expects publishToMavenLocal to publish under
+// exactly that coordinate - respect it when present. Otherwise (our own local dev loop,
+// ./gradlew publishToMavenLocal with no -P overrides) default to io.eot/0.0.1-local as
+// before. That mismatch between the Java package namespace (io.eot.figmacompare) and a
+// real release's Maven coordinate (com.github.anandbagmar:figmacompare) is intentional -
+// JitPack's groupId is a hosting/packaging artifact, unrelated to the code's own
+// namespace - see README.md's "Publishing a release" section.
+//
+// project.findProperty('version')/'group' can't distinguish "-P given" from "not given" -
+// Gradle's Project always has a built-in version default of the literal string
+// "unspecified" (truthy, so `?:` never falls through) - gradle.startParameter's own
+// projectProperties map is unaffected by that default and only reflects real -P flags.
+def cliProps = gradle.startParameter.projectProperties
+group = cliProps.group ?: 'io.eot'
+// -PpublishVersion is this project's own release workflow's convention (used only to
+// stamp the jar's Implementation-Version/filename when building a GitHub Release asset -
+// see .github/workflows/publish.yml); -Pversion is JitPack's. Neither given -> local dev.
+version = cliProps.version ?: (cliProps.publishVersion ?: '0.0.1-local')
 
 repositories {
     mavenLocal()
@@ -67,6 +81,10 @@ test {
     }
 }
 
+// mavenLocal() only - for everyday local-dev iteration (./gradlew publishToMavenLocal).
+// Real releases are never pushed anywhere by this project - JitPack builds them directly
+// from this repo's tags on demand, see .github/workflows/publish.yml and README.md's
+// "Publishing a release" section.
 publishing {
     publications {
         mavenJava(MavenPublication) {
@@ -75,18 +93,6 @@ publishing {
     }
     repositories {
         mavenLocal()
-        // Real releases only - see .github/workflows/publish.yml. Consuming this
-        // requires a GitHub token with read:packages (this repo is private), even once
-        // the repo itself is public - GitHub Packages' Maven registry always requires
-        // authentication to consume, unlike its npm registry.
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/anandbagmar/figmacompare")
-            credentials {
-                username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
-                password = project.findProperty("gpr.token") ?: System.getenv("GITHUB_TOKEN")
-            }
-        }
     }
 }
 
