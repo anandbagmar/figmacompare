@@ -9,17 +9,22 @@ depend on it as a published artifact instead of vendoring the source. See
 `figmacompare-sample` for a worked example (scenario providers, Excel file, thin TestNG
 shims around this library's plain-Java runners).
 
+## Docs
+
+- [The shared Excel file](docs/ExcelSchema.md) - the column reference, "sticky" fields
+- [uploadFromFigma / cleanFigmaExcel](docs/UploadFromFigma.md) - usage, `saveNewTests`
+  behavior, rate-limiting, the manual Figma-cache workaround
+- [compareWithFigma](docs/CompareWithFigma.md) - web/Android/iOS behavior, pre-flight
+  validation, the `ScenarioFlow`/registry pattern for mobile
+- [Configuration](docs/Configuration.md) - every setting this library reads, with
+  defaults
+
 ## What's in here
 
 - `io.eot.figmacompare.excel` — the shared Excel file model/validation (`FigmaRow`,
   `FigmaExcelFile`, `FigmaValidation`, `ExcelHelper`)
-- `io.eot.figmacompare.figma` — the Figma REST client (`FigmaClient`, URL parsing).
-  Every request is retried with exponential backoff on `429`/`5xx`, and paced at least
-  1 second apart from the previous request regardless of outcome, to reduce how often
-  a run trips Figma's own per-token rate limit in the first place. Neither eliminates
-  it entirely - a token already deep into an extended rate-limit window (e.g. from
-  several back-to-back runs) will still see `429`s; that's Figma's own throttling, not
-  a bug here.
+- `io.eot.figmacompare.figma` — the Figma REST client (`FigmaClient`, URL parsing) -
+  see [uploadFromFigma](docs/UploadFromFigma.md) for its retry/rate-limit handling.
 - `io.eot.figmacompare.eyes` — Applitools Eyes configuration and batch/result helpers
   shared across web/Android/iOS (`EyesConfigSupport`, `MobileEyesSupport`,
   `BatchSupport`, `ComparisonResultRecorder`)
@@ -31,11 +36,9 @@ shims around this library's plain-Java runners).
   orchestration for the `compareWithFigma` pipeline, one per platform. No TestNG (or any
   other test framework) dependency; a consuming repo wraps each in a thin TestNG (or
   JUnit, etc.) shim.
-- `UploadFromFigma` / `Baseline` — the `uploadFromFigma` baseline-upload pipeline.
-  `UploadFromFigma.main` takes `[figmaExcelPath] [forceRefresh] [platform]` (all
-  optional, also settable via `-DfigmaExcel`/`-DforceRefresh`/`-Dplatform`) - `platform`
-  (`Web`/`Android`/`iOS`) scopes the run to just that platform's rows instead of the
-  whole file; an invalid value hard-fails immediately.
+- `UploadFromFigma` / `Baseline` / `CleanExcel` — the `uploadFromFigma`
+  baseline-upload pipeline and its Excel-cleanup companion - see
+  [uploadFromFigma / cleanFigmaExcel](docs/UploadFromFigma.md) for usage.
 
 ## Local dev loop
 
@@ -91,28 +94,10 @@ unrelated to the code's own namespace) - it does not indicate anything is wrong.
 ## Configuration a consumer needs to provide
 
 - `config.properties` (or environment variables) with `FIGMA_TOKEN` and
-  `APPLITOOLS_API_KEY` — see `AppConfig`.
+  `APPLITOOLS_API_KEY` at minimum - see [Configuration](docs/Configuration.md) for
+  every setting and its default.
 - `ANDROID_HOME`/`ANDROID_SDK_ROOT` set, for the Android path.
 - Scenario provider classes registering into `AndroidScenarioRegistry`/
   `IosScenarioRegistry` for the mobile paths (web needs no registration - any
-  `App URL / Screen Name` can be navigated to directly).
-
-### Overridable paths and Applitools settings
-
-Everything below has a default matching the original single-repo layout, so an existing
-consumer needs to change nothing. All are `AppConfig.get(key, default)` lookups (env var,
-then `config.properties`) unless noted otherwise.
-
-| Setting | Default | Notes |
-|---|---|---|
-| `FIGMACOMPARE_CONFIG_DIR` | `figma-visual-testing` | Where `config.properties`/`templates/` live. **Env var or `-Dfigmacompare.configDir=...` system property only** - can't live in `config.properties` itself, since it determines where that file is. |
-| `FIGMA_EXCEL_FILE` | `<configDir>/figma_visual_tests.xlsx` | The shared Excel file - see `FigmaExcelFile`. |
-| `APPIUM_JS_PATH` | `./node_modules/appium/build/lib/main.js` | Appium's Node entrypoint - see `AppiumServerSupport`. |
-| `APPLITOOLS_SERVER_URL` | `https://eyes.applitools.com` | For an on-prem/private Applitools instance. |
-| `APPLITOOLS_MATCH_LEVEL` | `STRICT` | Any `com.applitools.eyes.MatchLevel` value, case-insensitive. An invalid value hard-fails immediately naming the valid options - see `EyesConfigSupport`. |
-| `APPLITOOLS_BRANCH_NAME` | `main` | Android/iOS `compareWithFigma` only. |
-| `APPLITOOLS_ENVIRONMENT_NAME` | `prod` | Android/iOS `compareWithFigma` only. |
-
-Still not configurable here (owned by the consumer instead, which is the right place for
-them): `sampleApps/...` app paths live in each consumer's own scenario provider classes,
-not in this library, so they're already per-consumer by construction.
+  `App URL / Screen Name` can be navigated to directly - see
+  [CompareWithFigma](docs/CompareWithFigma.md)).
