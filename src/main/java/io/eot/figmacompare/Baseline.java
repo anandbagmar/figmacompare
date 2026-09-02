@@ -186,12 +186,6 @@ public class Baseline {
         Log.field("Host OS", String.valueOf(config.getHostOS()));
         Log.field("Host App", String.valueOf(config.getHostApp()));
         Log.field("Batch Name", null != batch ? batch.getName() : "(none)");
-        // Diagnostic: confirms saveNewTests actually round-tripped through
-        // setConfiguration() and is what Eyes will use at close() - if this prints
-        // "true" and a first-ever test for this baselineName still shows Unresolved
-        // (not Passed) in the dashboard, the SDK call isn't the problem; check the
-        // Applitools account/project's "Auto save new tests" setting instead.
-        Log.field("saveNewTests", String.valueOf(eyesImages.getConfiguration().getSaveNewTests()));
         return eyesImages;
     }
 

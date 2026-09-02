@@ -184,10 +184,6 @@ public class WebCompareRunner {
         eyes.setConfiguration(config);
         eyes.setLogHandler(new StdoutLogHandler(true));
 
-        // Same rationale as Baseline.configureEyes()'s diagnostic - compareWithFigma
-        // deliberately sets saveNewTests=false (see EyesConfigSupport.baseConfiguration),
-        // so a "New" result here will never auto-resolve to Passed the way an upload can.
-        Log.field("saveNewTests", String.valueOf(config.getSaveNewTests()));
         Log.field("Match Level", String.valueOf(config.getMatchLevel()));
 
         return eyes;
