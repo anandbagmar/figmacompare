@@ -71,13 +71,29 @@ public class Baseline {
     public static BaselineUploadResult uploadScenarioAndSetAsBaseline(EyesRunner runner, String appName,
             String scenarioTestName, String baselineName, RectangleSize viewportSize, String apiKey,
             String serverUrl, BatchInfo batch, List<ScenarioStep> steps) {
+        return uploadScenarioAndSetAsBaseline(runner, appName, scenarioTestName, baselineName, viewportSize, apiKey,
+                serverUrl, batch, steps, true);
+    }
+
+    /**
+     * Same as the other overload, but lets the caller skip forcing Host OS to the
+     * upload machine's own OS ({@code setHostOS = false}) - e.g. for Android/iOS rows,
+     * where the upload happens on a plain Java process with no live device, so there is
+     * no real device OS to report and claiming the upload machine's OS (e.g. "Mac OS X")
+     * would misrepresent the dashboard for a test that will actually run on a mobile
+     * device/emulator. Baseline matching still works either way since it's keyed on
+     * Baseline Env Name, not Host OS.
+     */
+    public static BaselineUploadResult uploadScenarioAndSetAsBaseline(EyesRunner runner, String appName,
+            String scenarioTestName, String baselineName, RectangleSize viewportSize, String apiKey,
+            String serverUrl, BatchInfo batch, List<ScenarioStep> steps, boolean setHostOS) {
         requireCredentials(apiKey, serverUrl);
         if (null == steps || steps.isEmpty()) {
             throw new IllegalArgumentException("A scenario needs at least one step");
         }
 
         com.applitools.eyes.images.Eyes eyesImages = configureEyes(runner, appName, baselineName, apiKey, serverUrl,
-                batch);
+                batch, setHostOS);
         try {
             RectangleSize resolvedViewport = viewportSize;
             if (null == resolvedViewport) {
@@ -114,7 +130,7 @@ public class Baseline {
             String appName, String testName, RectangleSize viewportSize, String apiKey, String serverUrl,
             BatchInfo batch) {
         com.applitools.eyes.images.Eyes eyesImages = configureEyes(runner, appName, baselineName, apiKey, serverUrl,
-                batch);
+                batch, true);
 
         try {
             File imageFile = new File(baseLineFilePath);
@@ -141,11 +157,13 @@ public class Baseline {
     }
 
     private static com.applitools.eyes.images.Eyes configureEyes(EyesRunner runner, String appName,
-            String baselineName, String apiKey, String serverUrl, BatchInfo batch) {
+            String baselineName, String apiKey, String serverUrl, BatchInfo batch, boolean setHostOS) {
         com.applitools.eyes.images.Eyes eyesImages = new com.applitools.eyes.images.Eyes(runner);
         eyesImages.setBaselineEnvName(baselineName);
         com.applitools.eyes.config.Configuration config = eyesImages.getConfiguration();
-        config.setHostOS(System.getProperty("os.name"));
+        if (setHostOS) {
+            config.setHostOS(System.getProperty("os.name"));
+        }
         config.setHostApp(appName);
         config.setBaselineEnvName(baselineName);
         if (null != apiKey) {

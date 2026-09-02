@@ -153,9 +153,19 @@ public class UploadFromFigma {
                     : firstRow.baselineEnvName;
             RectangleSize viewportSize = ExcelHelper.parseViewport(firstRow.viewport);
 
+            // Android/iOS rows upload from a plain Java process with no live device, so
+            // there is no real device OS to report - forcing Host OS to the upload
+            // machine's own OS (e.g. "Mac OS X") would misrepresent the dashboard for a
+            // test that will actually run on a mobile device/emulator. Web rows keep the
+            // upload machine's OS since compareWebWithFigma runs locally too and reports
+            // the same value. Baseline matching is unaffected either way - it's keyed on
+            // Baseline Env Name, not Host OS.
+            boolean setHostOS = !"Android".equalsIgnoreCase(firstRow.platform)
+                    && !"iOS".equalsIgnoreCase(firstRow.platform);
+
             BaselineUploadResult result = Baseline.uploadScenarioAndSetAsBaseline(runner, resolvedAppName,
                     scenarioTestName, baselineEnvName, viewportSize, applitoolsApiKey, applitoolsServerUrl, batch,
-                    steps);
+                    steps, setHostOS);
 
             String resolvedViewport = result.getViewportSize().getWidth() + "x"
                     + result.getViewportSize().getHeight();
