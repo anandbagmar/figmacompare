@@ -148,7 +148,6 @@ public class Baseline {
         config.setHostOS(System.getProperty("os.name"));
         config.setHostApp(appName);
         config.setBaselineEnvName(baselineName);
-        config.setSaveNewTests(Boolean.TRUE);
         if (null != apiKey) {
             config.setApiKey(apiKey);
         }
