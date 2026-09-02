@@ -91,8 +91,14 @@ public class IosCompareRunner {
 
         // Guaranteed non-null by pre-flight validation (validateScenarioTests).
         IosScenarioRegistry.Registration registration = IosScenarioRegistry.get(scenarioName);
+        // The Excel row's own App Name is authoritative, same as uploadFromFigma and the
+        // web/Android compare paths - this is what keeps every side resolving to the same
+        // Applitools baseline, rather than each side independently deciding on a value
+        // that only matches by convention. registration.appName is just the fallback
+        // default for rows that leave the column blank.
+        String appName = isBlank(firstRow.appName) ? registration.appName : firstRow.appName;
 
-        eyes = MobileEyesSupport.open(driver, session.batch, registration.appName, scenarioName, baselineName,
+        eyes = MobileEyesSupport.open(driver, session.batch, appName, scenarioName, baselineName,
                 IS_EYES_ENABLED);
         try {
             registration.flow.run(driver, eyes, group);
