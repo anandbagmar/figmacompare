@@ -127,9 +127,17 @@ public class UploadFromFigma {
                 + (isScenario ? "Scenario: " + scenarioName + " (" + group.size() + " step(s))"
                         : "Standalone: " + firstRow.figmaUrl));
         try {
+            // A row's own App Name is sticky and takes precedence over the run-wide default -
+            // this is how a caller ties a scenario's uploaded baseline to the App Name that
+            // the corresponding compareWithFigma path (e.g. a mobile ScenarioFlow's own
+            // registered appName) will use, so the two sides resolve to the same Applitools
+            // baseline instead of the upload silently landing under the generic default and
+            // the comparison run never finding it (always showing up as a brand-new test).
+            String resolvedAppName = isBlank(firstRow.appName) ? appName : firstRow.appName;
+
             List<Baseline.ScenarioStep> steps = new ArrayList<>();
             for (FigmaRow row : group) {
-                row.appName = appName;
+                row.appName = resolvedAppName;
                 String scale = isBlank(row.scale) ? DEFAULT_SCALE : row.scale;
                 String format = isBlank(row.format) ? DEFAULT_FORMAT : row.format;
                 if (isBlank(row.testName)) {
@@ -145,8 +153,9 @@ public class UploadFromFigma {
                     : firstRow.baselineEnvName;
             RectangleSize viewportSize = ExcelHelper.parseViewport(firstRow.viewport);
 
-            BaselineUploadResult result = Baseline.uploadScenarioAndSetAsBaseline(runner, appName, scenarioTestName,
-                    baselineEnvName, viewportSize, applitoolsApiKey, applitoolsServerUrl, batch, steps);
+            BaselineUploadResult result = Baseline.uploadScenarioAndSetAsBaseline(runner, resolvedAppName,
+                    scenarioTestName, baselineEnvName, viewportSize, applitoolsApiKey, applitoolsServerUrl, batch,
+                    steps);
 
             String resolvedViewport = result.getViewportSize().getWidth() + "x"
                     + result.getViewportSize().getHeight();
