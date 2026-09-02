@@ -57,12 +57,9 @@ fi
 read -rp "Release title [default: $TAG]: " TITLE
 TITLE="${TITLE:-$TAG}"
 
-echo "Release notes (what changed in this version). End with an empty line:"
-NOTES=""
-while IFS= read -r line; do
-    [[ -z "$line" ]] && break
-    NOTES="${NOTES}${line}"$'\n'
-done
+echo "Release notes (what changed in this version) - multi-paragraph/markdown is fine,"
+echo "blank lines included. Paste the full text, then end input with Ctrl-D on its own line:"
+NOTES="$(cat)"
 if [[ -z "$NOTES" ]]; then
     echo "Error: release notes are required." >&2
     exit 1
