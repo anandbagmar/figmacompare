@@ -21,16 +21,10 @@ public class MobileEyesSupport {
 
     public static Eyes open(AppiumDriver driver, BatchInfo batch, String appName, String testName,
             String baselineName, boolean isEyesEnabled) {
-        return open(driver, batch, appName, testName, baselineName, isEyesEnabled, false);
-    }
-
-    public static Eyes open(AppiumDriver driver, BatchInfo batch, String appName, String testName,
-            String baselineName, boolean isEyesEnabled, boolean saveNewTests) {
         Eyes eyes = new Eyes();
         eyes.setLogHandler(new StdoutLogHandler(true));
 
         Configuration configuration = EyesConfigSupport.baseConfiguration(batch, baselineName);
-        configuration.setSaveNewTests(saveNewTests);
         configuration.setBranchName(AppConfig.get("APPLITOOLS_BRANCH_NAME", "main"));
         configuration.setCaptureStatusBar(true);
         configuration.setDisableBrowserFetching(true);

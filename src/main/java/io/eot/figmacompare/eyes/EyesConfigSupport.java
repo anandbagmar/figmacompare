@@ -32,7 +32,6 @@ public class EyesConfigSupport {
         configuration.setBatch(batch);
         configuration.setBaselineEnvName(baselineEnvName);
         configuration.setMatchLevel(resolveMatchLevel());
-        configuration.setSaveNewTests(false);
         configuration.setIgnoreDisplacements(true);
         configuration.setStitchMode(StitchMode.CSS);
         configuration.addProperty("username", System.getProperty("user.name"));
