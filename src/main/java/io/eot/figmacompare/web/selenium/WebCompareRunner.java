@@ -49,8 +49,6 @@ public class WebCompareRunner {
     private static final String DEFAULT_APP_NAME = "Applitools-Images";
     private static final RectangleSize DEFAULT_VIEWPORT = new RectangleSize(1280, 1024);
 
-    private static final String userName = System.getProperty("user.name");
-
     private static String figmaExcelPath;
     private static List<FigmaRow> allRows;
     private static List<List<FigmaRow>> webGroups;
@@ -63,7 +61,11 @@ public class WebCompareRunner {
         System.out.println("Using io.eot:figmacompare version: " + AppConfig.libraryVersion());
         visualGridRunner = new VisualGridRunner(new RunnerOptions().testConcurrency(10));
         visualGridRunner.setDontCloseBatches(true);
-        batchInfo = BatchSupport.createBatch(DEFAULT_APP_NAME, userName);
+        // Same batch-naming pattern as AndroidCompareRunner/IosCompareRunner (via
+        // MobileRunSupport.beforeSuite) - a fixed, recognizable name instead of
+        // "<username>-Applitools-Images", so batches from every compareWithFigma path
+        // are consistent in the Applitools dashboard.
+        batchInfo = BatchSupport.createSuiteBatch(AppConfig.get("APPLITOOLS_BATCH_NAME", "compareWebWithFigma"));
     }
 
     /**
