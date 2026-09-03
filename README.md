@@ -42,8 +42,14 @@ shims around this library's plain-Java runners).
 
 ## Local dev loop
 
+**macOS / Linux:**
 ```bash
 ./gradlew publishToMavenLocal
+```
+
+**Windows (Command Prompt or PowerShell):**
+```
+gradlew.bat publishToMavenLocal
 ```
 
 Publishes as `io.eot:figmacompare:0.0.1-local` (the default when `-PpublishVersion` isn't
